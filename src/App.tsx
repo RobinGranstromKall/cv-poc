@@ -1,26 +1,20 @@
-import React, { useState } from 'react'
+import React, {useState} from 'react'
 import './App.css'
-import { OpenAI } from 'node-openai';
+import {OpenAI} from 'node-openai';
+import {Row} from "./components/Row";
+import {Column} from "./components/Column";
 
 const openai = new OpenAI({
   organization: import.meta.env.VITE_OPENAI_ORGANIZATION_ID,
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
 });
 
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="row">{children}</div>;
-}
-
-function Column({ children }: { children: React.ReactNode }) {
-  return <div className="column">{children}</div>;
-}
-function App() {
+function Translation() {
+  const api = openai.v1();
   const [text, setText] = useState("This is a text that i have written");
   const [translation, setTranslation] = useState("");
-  const api = openai.v1();
-
   function identifyLanguage() {
-    const systemPrompt = `Identify the language of the following sentence. Only respond with the language code.`;
+    const systemPrompt = `Identify the language of the following sentence. Only respond with the language code. Don't add the full language.`;
     const messages: {
       role: "user" | "system" | "assistant";
       content: string;
@@ -31,9 +25,9 @@ function App() {
       max_tokens: 50,
       n: 1,
     }).then(({choices}: any) => {
-        const language = choices[0].message.content;
-        console.log({language});
-        translate(language)
+      const language = choices[0].message.content;
+      console.log("language", language);
+      translate(language)
 
     }).catch((error: any) => {
       console.log(error);
@@ -42,7 +36,7 @@ function App() {
 
   function translate(language: string) {
     let lang;
-    switch (language) {
+    switch (language.toLowerCase()) {
       case "Swedish":
       case "sv":
         lang = "English";
@@ -63,25 +57,32 @@ function App() {
       n: 1,
     }).then(({choices}: any) => {
       const translatedString = choices[0].message.content;
-      console.log({translatedString})
+      console.log("translatedString",translatedString)
       setTranslation(translatedString)
     }).catch((error: any) => {
       console.log(error);
     });
   }
   return (
+    <Row>
+      <Column>
+        <textarea defaultValue={text} onChange={(val) => setText(val.target.value)}/>
+        <button onClick={() => identifyLanguage()}>Click me</button>
+      </Column>
+      <Column>
+        <p>
+          {translation}
+        </p>
+      </Column>
+    </Row>
+  );
+}
+
+function App() {
+
+  return (
     <div className="App">
-      <Row>
-        <Column>
-          <textarea defaultValue={text} onChange={(val) => setText(val.target.value) } />
-          <button onClick={() => identifyLanguage()}>Click me</button>
-        </Column>
-        <Column>
-         <p>
-            {translation}
-          </p>
-        </Column>
-      </Row>
+      <Translation />
     </div>
   )
 }
