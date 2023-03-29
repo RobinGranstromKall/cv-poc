@@ -15,16 +15,20 @@ function Column({ children }: { children: React.ReactNode }) {
   return <div className="column">{children}</div>;
 }
 function App() {
-  const [text, setText] = useState("This is a text");
+  const [text, setText] = useState("This is a text that i have written");
   const [translation, setTranslation] = useState("");
   const api = openai.v1();
 
   function identifyLanguage() {
-    const content = `Identify the language of the following sentence: "${text}", respond with either Swedish or English without punctuation.`;
+    const systemPrompt = `Identify the language of the following sentence. Only respond with the language code.`;
+    const messages: {
+      role: "user" | "system" | "assistant";
+      content: string;
+    }[] = [{content: systemPrompt, role: 'system'}, {content: text, role: 'user'}];
     api.chat.create({
-      messages: [{content, role: 'user'}],
+      messages,
       model: 'gpt-3.5-turbo',
-      max_tokens: 5,
+      max_tokens: 50,
       n: 1,
     }).then(({choices}: any) => {
         const language = choices[0].message.content;
@@ -40,24 +44,27 @@ function App() {
     let lang;
     switch (language) {
       case "Swedish":
+      case "sv":
         lang = "English";
         break;
       default:
       case "English":
+      case "en":
         lang = "Swedish";
         break;
     }
-    const systemPrompt = `Translate the following sentence to ${lang}`;
+    const systemPrompt = `Translate the following sentence to ${lang} only respond with the translated text without a dot`;
     const prompt =`Translate the following sentence to ${lang}: ${text}`;
     console.log(prompt)
     api.chat.create({
       messages: [{role: "system", content: systemPrompt}, {role: "system", content: "Only respond with the translated text"},{content: text, role: 'user'}],
       model: 'gpt-3.5-turbo',
-      max_tokens: 10,
+      max_tokens: 50,
       n: 1,
     }).then(({choices}: any) => {
-      console.log({choices})
-      setTranslation(choices[0].message.content)
+      const translatedString = choices[0].message.content;
+      console.log({translatedString})
+      setTranslation(translatedString)
     }).catch((error: any) => {
       console.log(error);
     });
@@ -66,7 +73,7 @@ function App() {
     <div className="App">
       <Row>
         <Column>
-          <textarea defaultValue="This is a text" onChange={(val) => setText(val.target.value) } />
+          <textarea defaultValue={text} onChange={(val) => setText(val.target.value) } />
           <button onClick={() => identifyLanguage()}>Click me</button>
         </Column>
         <Column>
